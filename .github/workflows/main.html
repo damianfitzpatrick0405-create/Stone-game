@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stone Wall Designer</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #222; color: white; margin: 0; }
+        #controls { background: #333; padding: 15px; width: 100%; display: flex; gap: 20px; justify-content: center; z-index: 10; }
+        
+        /* The Workspace */
+        #viewport { 
+            position: relative; 
+            width: 800px; 
+            height: 600px; 
+            overflow: hidden; 
+            border: 2px solid #555;
+            margin-top: 20px;
+            background-size: cover;
+            perspective: 1000px; /* Essential for 3D depth */
+        }
+
+        /* The Perspective Plane - This skews the stones */
+        #stone-plane {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            pointer-events: none;
+        }
+
+        .stone {
+            position: absolute;
+            cursor: move;
+            pointer-events: auto;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .ui-btn { padding: 8px 12px; cursor: pointer; background: #444; color: white; border: 1px solid #666; }
+        .ui-btn:hover { background: #555; }
+        input[type="range"] { vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div id="controls">
+    <div>
+        <label>1. Upload Landscape: </label>
+        <input type="file" id="bgUpload" accept="image/*">
+    </div>
+    <div>
+        <label>2. Stone Scale: </label>
+        <input type="range" id="stoneScale" min="20" max="200" value="100">
+    </div>
+    <div>
+        <label>3. Vanishing Point (Tilt): </label>
+        <input type="range" id="perspRotate" min="-60" max="60" value="0">
+    </div>
+    <button class="ui-btn" onclick="addStone()">Add Stone</button>
+</div>
+
+<div id="viewport" id="viewport">
+    <div id="stone-plane"></div>
+</div>
+
+<script>
+    const viewport = document.getElementById('viewport');
+    const stonePlane = document.getElementById('stone-plane');
+    const bgUpload = document.getElementById('bgUpload');
+    const stoneScale = document.getElementById('stoneScale');
+    const perspRotate = document.getElementById('perspRotate');
+
+    // Handle Background Image
+    bgUpload.addEventListener('change', (e) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            viewport.style.backgroundImage = `url(${event.target.result})`;
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    });
+
+    // Handle Perspective Tilt
+    perspRotate.addEventListener('input', (e) => {
+        stonePlane.style.transform = `rotateX(${e.target.value}deg)`;
+    });
+
+    function addStone() {
+        const stone = document.createElement('img');
+        // Using a placeholder stone texture
+        stone.src = 'https://img.freepik.com/free-photo/stone-texture_1194-5633.jpg';
+        stone.className = 'stone';
+        stone.style.width = stoneScale.value + 'px';
+        stone.style.left = '50px';
+        stone.style.top = '50px';
+
+        // Drag and Drop Logic
+        let isDragging = false;
+        stone.onmousedown = (e) => {
+            isDragging = true;
+            let shiftX = e.clientX - stone.getBoundingClientRect().left;
+            let shiftY = e.clientY - stone.getBoundingClientRect().top;
+
+            function moveAt(pageX, pageY) {
+                let rect = viewport.getBoundingClientRect();
+                stone.style.left = (pageX - rect.left - shiftX) + 'px';
+                stone.style.top = (pageY - rect.top - shiftY) + 'px';
+            }
+
+            function onMouseMove(e) { if (isDragging) moveAt(e.pageX, e.pageY); }
+
+            document.addEventListener('mousemove', onMouseMove);
+
+            stone.onmouseup = () => {
+                isDragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+            };
+        };
+
+        stone.ondragstart = () => false;
+        stonePlane.appendChild(stone);
+    }
+</script>
+
+</body>
+</html>
